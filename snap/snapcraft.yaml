@@ -9,8 +9,8 @@ description: |
   * See https://github.com/DNSCrypt/dnscrypt-proxy  for more details.
 
   **DNSCrypt-proxy Release**
-  * Configure DNSCrypt-proxy through '$SNAP_DATA/dnscrypt-proxy.toml' config file
-  * Configure auto-update blocklists through config files in '$SNAP_DATA/utils/generate-domains-blocklist/' folder
+  * Configure DNSCrypt-proxy through '$SNAP_DATA/config/dnscrypt-proxy.toml' config file
+  * Configure auto-update blocklists through config files in '$SNAP_DATA/config/utils/generate-domains-blocklist/' folder
   * Auto-update blocklists Service runs twice a day and generates '$SNAP_DATA/config/generated-blocked-names.txt'.
   * Block list is not activated by default. (Check 'dnscrypt-proxy.toml' toml-integrated doc and official doc)
   * You need to manually change your system to use this dnscrypt-proxy (see doc).
