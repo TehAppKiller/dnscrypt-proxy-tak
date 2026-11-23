@@ -108,7 +108,7 @@ sudo snap logs dnscrypt-proxy-tak.dnscrypt-proxy
 
 #### Force blocklist generation
 ```
-sudo snap run dnscrypt-proxy-tak..update-blocklists
+sudo snap run dnscrypt-proxy-tak.update-blocklists
 ```
 
 #### Send custom commands
@@ -127,4 +127,5 @@ Configuration files are never updated (for now) ; if changes are required with n
 See common doc about [building a snap](https://github.com/TehAppKiller/Snapcraft-common-doc/tree/main#Building).
 
 ## Versionning
+
 See common doc about [versionning](https://github.com/TehAppKiller/Snapcraft-common-doc/tree/main#Versionning).
