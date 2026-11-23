@@ -1,0 +1,166 @@
+name: dnscrypt-proxy-tak
+title: dnscrypt-proxy-tak
+summary: UnOfficial release of DNSCrypt-Proxy with auto-update blocklists
+description: |
+  **A flexible DNS proxy, with support for modern encrypted DNS protocols **
+  such as DNSCrypt v2 including Post-Quantum DNSCrypt (DNSCrypt 2026), DNS-over-HTTPS, Anonymized DNSCrypt and ODoH (Oblivious DoH).\
+  It includes auto-update blocklists.
+  
+  * See https://github.com/DNSCrypt/dnscrypt-proxy  for more details.
+
+  **DNSCrypt-proxy Release**
+  * Configure DNSCrypt-proxy through '$SNAP_DATA/dnscrypt-proxy.toml' config file
+  * Configure auto-update blocklists through config files in '$SNAP_DATA/utils/generate-domains-blocklist/' folder
+  * Auto-update blocklists Service runs twice a day and generates '$SNAP_DATA/config/generated-blocked-names.txt'.
+  * Block list is not activated by default. (Check 'dnscrypt-proxy.toml' toml-integrated doc and official doc)
+  * You need to manually change your system to use this dnscrypt-proxy (see doc).
+  * Service is restarted on any condition.
+  
+  **Information:**
+  * Check github project for more help: https://github.com/TehAppKiller/dnscrypt-proxy-tak
+website: ['https://dnscrypt.info', 'https://github.com/DNSCrypt/dnscrypt-proxy']
+source-code: https://github.com/TehAppKiller/dnscrypt-proxy-tak
+issues: https://github.com/TehAppKiller/dnscrypt-proxy-tak/issues
+contact: ['mailto:tehappkiller@proton.me', 'https://mastodon.social/@TehAppKiller']
+donation: https://whydonate.com/en/fundraising/help-teh-devz
+license: MIT
+icon: icon.svg
+grade: stable
+confinement: strict
+base: core26
+adopt-info: dnscrypt-proxy
+platforms:
+  amd64:
+  arm64:
+  armhf:
+  # ppc64el:
+  # s390x:
+  riscv64:
+
+apps:
+  dnscrypt-proxy:
+    command: bin/run-dnscrypt-proxy.sh
+    daemon: simple
+    restart-condition: always
+    plugs:
+      - network
+      - network-bind
+      
+  update-blocklists:
+    command: bin/run-update-blocklists.sh
+    daemon: oneshot
+    restart-condition: always
+    timer: 0:00~24:00/2
+    plugs:
+      - network
+      - network-bind
+      
+  dnscrypt-proxy-call:
+    command: bin/run-dnscrypt-proxy-call.sh
+    plugs:
+      - network
+      - network-bind
+
+parts:
+  dnscrypt-proxy:
+    source: .
+    plugin: nil
+    override-pull: |
+    
+      # Architecture
+      case "$CRAFT_ARCH_BUILD_FOR" in
+        amd64) SRC_ARCH="x86_64" ;;
+        arm64) SRC_ARCH="arm64" ;;
+        armhf) SRC_ARCH="arm" ;;
+        riscv64) SRC_ARCH="riscv64" ;;
+      esac
+      
+      # Get Last Release version and Check Snap (with same Source) version
+      src_version=$(curl -sL https://api.github.com/repos/DNSCrypt/dnscrypt-proxy/releases/latest | grep "linux_$SRC_ARCH\-.*\.tar.gz\"" | sed -nre "s/^.*\/download\/([^\/]*)\/.*/\1/p")
+      echo "Source last release: ${src_version}"
+      snap_last_version=$(curl -sL -H "Snap-Device-Series: 16" "https://api.snapcraft.io/v2/snaps/info/dnscrypt-proxy-tak?architecture=${CRAFT_ARCH_BUILD_FOR}&fields=version" | sed -nre "s/^.*\"stable\"\,\"track\"\:\"latest\"\}\,\"version\"\:\"([^\"]*)\".*/\1/p");
+      echo "Snap last version: ${snap_last_version}"
+      snap_build_with_same_version=$(echo $snap_last_version | sed -nre "s/^($src_version.*).*/\1/p");
+      # Same version ?
+      if [ -z "$snap_build_with_same_version" ]
+      then
+        new_snap_version="${src_version}";
+      else
+        # Get snap build version
+        snap_build=$(echo $snap_build_with_same_version | sed -nre 's/^.*-v([0-9]*).*/\1/p');
+        # Already a build version ?
+        if [ -z "$snap_build" ]
+        then
+          # init @v2
+          new_snap_build="2";
+        else
+          # increment @v+1
+          new_snap_build=$(($snap_build+1));
+        fi
+
+        new_snap_version="${src_version}-v${new_snap_build}";
+      fi
+
+      craftctl set version=$new_snap_version
+      
+      # Pull dnscrypt-proxy
+      rm -rf $CRAFT_PART_SRC/{,.[!.],..?}*
+      download_url=$(curl -sL https://api.github.com/repos/DNSCrypt/dnscrypt-proxy/releases/latest | grep "linux_$SRC_ARCH\-.*\.tar.gz\"" | sed -nre "s/^.*\"browser_download_url\": \"([^\"]*)\".*/\1/p")
+      wget "${download_url}" -O srcfile
+      tar xvf srcfile
+      
+      # Re-Organize
+      ls
+      cd "linux-$SRC_ARCH"
+      # - bin
+      mkdir -p "$CRAFT_PART_INSTALL/usr/bin/"
+      mv dnscrypt-proxy "$CRAFT_PART_INSTALL/usr/bin/"
+      mv localhost.pem "$CRAFT_PART_INSTALL/usr/bin/"
+      # - config
+      mkdir -p "$CRAFT_PART_INSTALL/etc/dnscrypt-proxy/"
+      mv *.txt "$CRAFT_PART_INSTALL/etc/dnscrypt-proxy/"
+      mv *.toml "$CRAFT_PART_INSTALL/etc/dnscrypt-proxy/"
+      # - license and doc
+      mkdir -p "$CRAFT_PART_INSTALL/usr/share/doc/dnscrypt-proxy"
+      mv LICENSE "$CRAFT_PART_INSTALL/usr/share/doc/dnscrypt-proxy"
+      
+      # Clean
+      cd ..
+      rm -f srcfile
+      rm -rf linux_$SRC_ARCH
+      
+      # Pull update-blocklists
+      git clone -b ${src_version} --depth=1 https://github.com/DNSCrypt/dnscrypt-proxy.git ./git
+      
+      # Re-Organize
+      # - bin
+      mkdir -p "$CRAFT_PART_INSTALL/usr/bin/"
+      mv git/utils/generate-domains-blocklist/generate-domains-blocklist.py "$CRAFT_PART_INSTALL/usr/bin/"
+      # - config
+      mkdir -p "$CRAFT_PART_INSTALL/etc/dnscrypt-proxy/utils/generate-domains-blocklist/"
+      mv git/utils/generate-domains-blocklist/* "$CRAFT_PART_INSTALL/etc/dnscrypt-proxy/utils/generate-domains-blocklist/"
+      
+      # Clean
+      rm -rf git/{,.[!.],..?}*
+      
+      craftctl default
+    build-packages:
+      - curl
+      - wget
+      - git
+
+  local:
+    plugin: dump
+    source: snap/local
+    override-prime: |
+      craftctl default
+      chmod +rx $CRAFT_PRIME/bin/run-dnscrypt-proxy.sh
+      chmod +rx $CRAFT_PRIME/bin/run-update-blocklists.sh
+      chmod +rx $CRAFT_PRIME/bin/run-dnscrypt-proxy-call.sh
+
+  deps:
+    plugin: nil
+    source: .
+    stage-packages:
+      - python3
+      
