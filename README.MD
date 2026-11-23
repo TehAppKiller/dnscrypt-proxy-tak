@@ -23,7 +23,7 @@ Configure DNSCrypt-proxy through '$SNAP_DATA/dnscrypt-proxy.toml' config file\
 Configure auto-update blocklists through config files in '$SNAP_DATA/utils/generate-domains-blocklist/' folder\
 Auto-update blocklists Service runs twice a day and generates '$SNAP_DATA/config/generated-blocked-names.txt'\
 Block list is not activated by default. (Check 'dnscrypt-proxy.toml' toml-integrated doc and official doc)\
-You need to manually change your system to use this dnscrypt-proxy (see doc).\
+You need to manually change your DNS system configuration to use dnscrypt-proxy (see doc).\
 Service is restarted on any condition.
 
 ## FAQ
@@ -129,3 +129,4 @@ See common doc about [building a snap](https://github.com/TehAppKiller/Snapcraft
 ## Versionning
 
 See common doc about [versionning](https://github.com/TehAppKiller/Snapcraft-common-doc/tree/main#Versionning).
+
